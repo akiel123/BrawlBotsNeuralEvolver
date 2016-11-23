@@ -3,21 +3,21 @@
 #include <thrust\device_vector.h>
 
 struct SNeuralLayer {
-	std::vector<SNeuron> neurons;
+	std::vector<SNeuron> *neurons;
 
 	SNeuralLayer(int nNeurons) {
 		for (int i = 0; i < nNeurons; i++) {
-			neurons.push_back(SNeuron(1));
+			neurons->push_back(SNeuron(1));
 		}
 	}
 	SNeuralLayer(int nNeurons, std::vector<SNeuron> inputs) {
 		for (int i = 0; i < nNeurons; i++) {
-			neurons.push_back(SNeuron(inputs));
+			neurons->push_back(SNeuron(inputs));
 		}
 	}
 	SNeuralLayer(int nNeurons, SNeuralLayer inputLayer) {
 		for (int i = 0; i < nNeurons; i++) {
-			neurons.push_back(SNeuron(inputLayer.neurons));
+			neurons->push_back(SNeuron(inputLayer.neurons));
 		}
 	}
 

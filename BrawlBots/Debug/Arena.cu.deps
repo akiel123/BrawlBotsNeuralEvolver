@@ -303,7 +303,7 @@ c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\host_defines.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\vector_functions.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\device_launch_parameters.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\vector_types.h
-c:\users\manke\documents\visual studio 2015\projects\brawlbots\brawlbots\Arena.h
+c:\users\me\documents\school\brawlbotsneuralevolver\brawlbots\Arena.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\vector
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xmemory
@@ -367,9 +367,9 @@ C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\mm3dnow.h
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\vcruntime.h
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\stdexcept
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstring
-c:\users\manke\documents\visual studio 2015\projects\brawlbots\brawlbots\NeuralNetwork.h
-c:\users\manke\documents\visual studio 2015\projects\brawlbots\brawlbots\NeuralLayer.h
-c:\users\manke\documents\visual studio 2015\projects\brawlbots\brawlbots\Neuron.h
+c:\users\me\documents\school\brawlbotsneuralevolver\brawlbots\NeuralNetwork.h
+c:\users\me\documents\school\brawlbotsneuralevolver\brawlbots\NeuralLayer.h
+c:\users\me\documents\school\brawlbotsneuralevolver\brawlbots\Neuron.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust\device_vector.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/config.h
@@ -794,7 +794,7 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/de
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/host_vector.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/host_vector.inl
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
-c:\users\manke\documents\visual studio 2015\projects\brawlbots\brawlbots\Bot.h
+c:\users\me\documents\school\brawlbotsneuralevolver\brawlbots\Bot.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\curand.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\math.h

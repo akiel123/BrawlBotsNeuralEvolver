@@ -9,7 +9,7 @@
 enum class FetchType {Binary, Sigmoid, Linear};
 
 
-struct SNeuron {
+struct HNeuron {
 	int nConnections;
 	int thresh;
 	float value;
@@ -50,6 +50,49 @@ struct SNeuron {
 		input.reserve(nConnections);
 	}
 };
+
+struct DNeuron {
+	int nConnections;
+	int thresh;
+	float value;
+	thrust::device_vector<DNeuron> c;
+	thrust::device_vector<float> w;
+	thrust::device_vector<float> input;
+
+	DNeuron(int numberOfConnections) {
+		nConnections = numberOfConnections;
+		c.reserve(nConnections);
+		w.reserve(nConnections);
+		input.reserve(nConnections);
+	}
+	DNeuron(thrust::device_vector<DNeuron> connections) {
+		c = connections;
+		nConnections = connections.size();
+		w.reserve(nConnections);
+		input.reserve(nConnections);
+		for (int i = 0; i < c.size(); i++) {
+			w[i] = rand() / RAND_MAX;
+		}
+	}
+	DNeuron(std::vector<DNeuron> connections, thrust::device_vector<float> weights) {
+		if (connections.size() < weights.size()) {
+			nConnections = connections.size();
+			c = connections;
+			for (int i = 0; i < nConnections; i++) {
+				w.push_back(weights[i]);
+			}
+		}
+		else {
+			nConnections = weights.size();
+			w = weights;
+			for (int i = 0; i < nConnections; i++) {
+				connections.push_back(connections[i]);
+			}
+		}
+		input.reserve(nConnections);
+	}
+};
+
 
 void NeuronFetchInputs(SNeuron n, FetchType t);
 void NeuronPushInput(SNeuron n, std::vector<float> input);

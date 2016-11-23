@@ -54,7 +54,7 @@ struct SNeuralBot {
 	int id;
 	int ammo;
 	int health;
-	thrust::device_vector<float> lastOutput;
+	thrust::device_vector<float>* lastOutput;
 	SNeuralBot() {
 		nnwrk = &SNeuralNetwork(1, 1);
 	}
@@ -95,14 +95,14 @@ struct SBullet {
 struct SArena {
 	int winner = -1;
 	int steps = 0;
-	thrust::device_vector<SNeuralBot> bots;
-	thrust::device_vector<SAmmo> ammo;
-	thrust::device_vector<SBullet> bullets;
+	thrust::device_vector<SNeuralBot> *bots;
+	thrust::device_vector<SAmmo> *ammo;
+	thrust::device_vector<SBullet> *bullets;
 
 	SArena(SNeuralBot b1, SNeuralBot b2) {
 		steps = STEP_AMOUNT;
-		bots.push_back(b1);
-		bots.push_back(b2);
+		bots->push_back(b1);
+		bots->push_back(b2);
 	}
 };
 
