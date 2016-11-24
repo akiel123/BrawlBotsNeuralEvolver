@@ -148,7 +148,6 @@
     <ClCompile Include="Neuron.cu" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\..\..\..\..\..\..\ProgramData\NVIDIA Corporation\CUDA Samples\v8.0\0_Simple\simplePrintf\simplePrintf.cu" />
     <CudaCompile Include="Arena.cu" />
     <CudaCompile Include="NeuralBot.cu" />
   </ItemGroup>

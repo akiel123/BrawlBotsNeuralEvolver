@@ -2,31 +2,31 @@
 #include "NeuralNetwork.h"
 #include <cstdlib>
 
-struct SIndividual {
-	SNeuralNetwork nnwrk = SNeuralNetwork(0,0);
+struct HIndividual {
+	HNeuralNetwork nnwrk = HNeuralNetwork(0,0);
 	float personalFitness;
 	float legacyFitness;
 	int name;
 	
-	SIndividual() {
+	HIndividual() {
 		name = rand();
-		nnwrk = SNeuralNetwork(39, 13);
+		nnwrk = HNeuralNetwork(39, 13);
 		personalFitness = 0;
 		legacyFitness = 0;
 	}
-	SIndividual(SNeuralNetwork parent) {
+	HIndividual(HNeuralNetwork parent) {
 		name = rand();
 		nnwrk = NNGetMutatedCopy(parent);
 		personalFitness = 0;
 		legacyFitness = 0;
 	}
-	SIndividual(SNeuralNetwork parent, float lFitness) {
+	HIndividual(HNeuralNetwork parent, float lFitness) {
 		name = rand();
 		nnwrk =  NNGetMutatedCopy(parent);
 		personalFitness = 0;
 		legacyFitness = lFitness;
 	}
-	SIndividual(SNeuralNetwork parent, float lFitness, float pFitness, int Name) {
+	HIndividual(HNeuralNetwork parent, float lFitness, float pFitness, int Name) {
 		name = Name;
 		nnwrk = NNGetMutatedCopy(parent);
 		personalFitness = pFitness;
@@ -35,15 +35,15 @@ struct SIndividual {
 };
 
 struct less_than_key_pf {
-	inline bool operator() (const SIndividual &i1, const SIndividual &i2) {
+	inline bool operator() (const HIndividual &i1, const HIndividual &i2) {
 		return(i1.personalFitness < i2.personalFitness);
 	}
 };
 struct less_than_key_lf {
-	inline bool operator() (const SIndividual &i1, const SIndividual &i2) {
+	inline bool operator() (const HIndividual &i1, const HIndividual &i2) {
 		return(i1.legacyFitness < i2.legacyFitness);
 	}
 };
 
-void ISortByLegacyFitness(std::vector<SIndividual> ids);
-void ISortByPersonalFitness(std::vector<SIndividual> ids);
+void ISortByLegacyFitness(std::vector<HIndividual> ids);
+void ISortByPersonalFitness(std::vector<HIndividual> ids);

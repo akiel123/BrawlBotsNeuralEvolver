@@ -7,7 +7,7 @@
 
 #define RELOAD_TIME
 
-__device__ void BotUpdate(SNeuralBot b, SNeuralNetwork nnwrk, SArena a) {
+__device__ void BotUpdate(DNeuralBot b, DNeuralNetwork nnwrk, DArena a) {
 	b.reload--;
 	BotAction ba = GetBotAction(b, nnwrk);
 
@@ -35,19 +35,19 @@ __device__ void BotUpdate(SNeuralBot b, SNeuralNetwork nnwrk, SArena a) {
 	b.posy += GetVelY(b);
 }
 
-__device__ float GetVelX(SNeuralBot b) {
+__device__ float GetVelX(DNeuralBot b) {
 	return b.vel * cos(b.rot);
 }
 
-__device__ float GetVelY(SNeuralBot b) {
+__device__ float GetVelY(DNeuralBot b) {
 	return b.vel * sin(b.rot);
 }
 
-__device__ int BotCollides(SNeuralBot bo, SBullet bu) {
+__device__ int BotCollides(DNeuralBot bo, DBullet bu) {
 	float dist = pointDistance(bo.posx + BOT_RADIUS, bo.posy + BOT_RADIUS, bu.posx, bu.posy, bu.prevPosx, bu.prevPosy);
 	return dist <= (BOT_RADIUS + BULLET_RADIUS) / 2;
 }
-__device__ int BotCollides(SNeuralBot bo, SAmmo a) {
+__device__ int BotCollides(DNeuralBot bo, DAmmo a) {
 	float dist = pointDistance(bo.posx + BOT_RADIUS, bo.posy + BOT_RADIUS, a.posx, a.posy, bo.posx + GetVelX(bo), bo.posy + GetVelY(bo));
 	return dist <= (BOT_RADIUS + AMMO_RADIUS) / 2;
 }

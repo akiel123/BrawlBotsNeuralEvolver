@@ -4,41 +4,40 @@
 #include "NeuralNetwork.h"
 #include "NeuralBot.h"
 
-__device__ thrust::device_vector<float> GetInputs(SNeuralBot b, thrust::device_vector<float> memory, SArena a) {
-	thrust::device_vector<float> inp;
-	inp.reserve(nTrivial + nObs * nDetailsObs + nMemory);
-	inp.push_back(0); //Arena width
-	inp.push_back(0); //Arena height
+__device__ float* GetInputs(DNeuralBot b, float* memory, DArena a) {
+	float* inp;
+	inp[0] = ARENAW; //Arena width
+	inp[1] = ARENAH; //Arena height
 
-	thrust::device_vector<SSighting> v = AView(a, b.posx, b.posy, b.rot, b.id);
-	int random = randomPromille() * 1000 * v.size();
-	for (int i = 0; i < nObs && v.size() != 0; i++) {
-		SSighting s = v[(random + i) % v.size()];
+	DSightingBatch v = AView(a, b.posx, b.posy, b.rot, b.id);
+	int random = randomPromille() * 1000 * v.nSightings;
+	for (int i = 0; i < nObs && v.nSightings != 0; i++) {
+		DSighting s = v.sights[(random + i) % v.nSightings];
 		for (int j = 0; j < nDetailsObs; j++) {
 			switch (j) {
+			case 0:
+				inp[i * nDetailsObs + j] = s.distance / ARENADIAG;
+				break;
 			case 1:
-				inp.push_back(s.distance / ARENADIAG);
+				inp[i * nDetailsObs + j] = fmodf(s.angle, M_2PI) / M_2PI;
 				break;
 			case 2:
-				inp.push_back(fmodf(s.angle, M_2PI) / M_2PI);
+				inp[i * nDetailsObs + j] = s.velocityx / MAX_VELOCITY;
 				break;
 			case 3:
-				inp.push_back(s.velocityx / MAX_VELOCITY);
+				inp[i * nDetailsObs + j] = s.velocityy/ MAX_VELOCITY;
 				break;
 			case 4:
-				inp.push_back(s.velocityy/ MAX_VELOCITY);
+				inp[i * nDetailsObs + j] = viewTypeToDouble(s.t);
 				break;
 			case 5:
-				inp.push_back(viewTypeToDouble(s.t));
+				inp[i * nDetailsObs + j] = s.id / RAND_MAX;
 				break;
 			case 6:
-				inp.push_back(s.id / RAND_MAX);
+				inp[i * nDetailsObs + j] = s.posx / ARENAW;
 				break;
 			case 7:
-				inp.push_back(s.posx / ARENAW);
-				break;
-			case 8:
-				inp.push_back(s.posx / ARENAH);
+				inp[i * nDetailsObs + j] = s.posx / ARENAH;
 				break;
 			default:
 				break;
@@ -74,7 +73,7 @@ __device__ float viewTypeToDouble(ViewType t) {
 	}
 }
 
-__device__ BotAction GetBotAction(SNeuralBot b, SNeuralNetwork nnwrk) {
+__device__ BotAction GetBotAction(DNeuralBot b, DNeuralNetwork nnwrk) {
 	b.lastOutput = NNGetOutput(nnwrk, b.lastOutput);
 	return BotAction(b.lastOutput[0], b.lastOutput[1], b.lastOutput[2] > 0.5);
 }

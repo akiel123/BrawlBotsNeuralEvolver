@@ -2,24 +2,24 @@
 #include "Individual.h"
 #include <cstdlib>
 
-struct SGeneration {
-	std::vector<SIndividual> *ids;
+struct HGeneration {
+	std::vector<HIndividual> *ids;
 	int generationNumber;
 	int generationID;
 	
-	SGeneration(int nIndividual) {
+	HGeneration(int nIndividual) {
 		generationID = rand();
 		for (int i = 0; i < nIndividual; i++) {
-			ids->push_back(SIndividual());
+			ids->push_back(HIndividual());
 		}
 		generationNumber = 0;
 	}
-	SGeneration(std::vector<SIndividual> *individuals) {
+	HGeneration(std::vector<HIndividual> *individuals) {
 		generationID = rand();
 		ids = individuals;
 		generationNumber = 0;
 	}
-	SGeneration(std::vector<SIndividual> *indvs, int generationNumber, int generationID) {
+	HGeneration(std::vector<HIndividual> *indvs, int generationNumber, int generationID) {
 		generationID = generationID;
 		ids = indvs;
 		generationNumber = generationNumber;
@@ -27,8 +27,8 @@ struct SGeneration {
 
 };
 
-void GSortByLegacyFitness(SGeneration g);
-void GSortByPersonalFitness(SGeneration g);
-void GEvolveGeneration(SGeneration g);
-void GEvolveGenerationToPopulationNr(SGeneration g, int n);
-void GEvolveGenerationSelectiveToPopulationNr(SGeneration g, int n, float thresh);
+void GSortByLegacyFitness(HGeneration g);
+void GSortByPersonalFitness(HGeneration g);
+void GEvolveGeneration(HGeneration g);
+void GEvolveGenerationToPopulationNr(HGeneration g, int n);
+void GEvolveGenerationSelectiveToPopulationNr(HGeneration g, int n, float thresh);

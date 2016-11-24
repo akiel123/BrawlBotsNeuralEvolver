@@ -27,7 +27,7 @@
 
 enum class ViewType { FRIEND, ENEMY, WALL, BULLET, AMMO };
 
-struct SSighting {
+struct DSighting {
 	float distance;
 	float angle;
 	float velocityx;
@@ -37,14 +37,19 @@ struct SSighting {
 	float posx;
 	float posy;
 	
-	SSighting() {};
-	SSighting(float d, float r, float vx, float vy, ViewType vt, int ID, float px, float py)
+	DSighting() {};
+	DSighting(float d, float r, float vx, float vy, ViewType vt, int ID, float px, float py)
 		: distance(d), angle(r), velocityx(vx), velocityy(vy), t(vt), id(ID), posx(px), posy(py) {}
 };
 
+struct DSightingBatch {
+	DSighting* sights;
+	int nSightings;
+	DSightingBatch(DSighting * sightings, int numberOfSights) : sights(sightings), nSightings(numberOfSights) {}
+};
 
-struct SNeuralBot {
-	SNeuralNetwork *nnwrk;
+struct DNeuralBot {
+	DNeuralNetwork *nnwrk;
 	int reload;
 	int NNid;
 	float posx;
@@ -54,11 +59,11 @@ struct SNeuralBot {
 	int id;
 	int ammo;
 	int health;
-	thrust::device_vector<float>* lastOutput;
-	SNeuralBot() {
-		nnwrk = &SNeuralNetwork(1, 1);
+	float* lastOutput;
+	__device__ DNeuralBot() {
+		nnwrk = &DNeuralNetwork(1, 1);
 	}
-	SNeuralBot(SNeuralNetwork* nn) {
+	__device__ DNeuralBot(DNeuralNetwork* nn) {
 		nnwrk = nn;
 		id = rand() / RAND_MAX;
 		ammo = START_AMMO;
@@ -68,21 +73,21 @@ struct SNeuralBot {
 	}
 };
 
-struct SAmmo {
+struct DAmmo {
 	float posx;
 	float posy;
 	int id;
-	SAmmo() {
+	__device__ DAmmo() {
 		id = rand() / RAND_MAX	;
 	}
-	SAmmo(float iposx, float iposy) {
+	__device__ DAmmo(float iposx, float iposy) {
 		posx = iposx;
 		posy = iposy;
 		id = rand() / RAND_MAX;
 	}
 };
 
-struct SBullet {
+struct DBullet {
 	float posx;
 	float posy;
 	float prevPosx;
@@ -92,30 +97,33 @@ struct SBullet {
 	int id;
 };
 
-struct SArena {
+struct DArena {
 	int winner = -1;
 	int steps = 0;
-	thrust::device_vector<SNeuralBot> *bots;
-	thrust::device_vector<SAmmo> *ammo;
-	thrust::device_vector<SBullet> *bullets;
+	int botCount;
+	int ammoCount;
+	int bulletCount;
+	DNeuralBot *bots;
+	DAmmo *ammo;
+	DBullet *bullets;
 
-	SArena(SNeuralBot b1, SNeuralBot b2) {
+	__device__ DArena(DNeuralBot b1, DNeuralBot b2) {
 		steps = STEP_AMOUNT;
-		bots->push_back(b1);
-		bots->push_back(b2);
+		bots[0] = b1;
+		bots[1] = b2;
 	}
 };
 
 
 
 
-__device__ thrust::device_vector<SSighting> AView(SArena a, float posx, float posy, float r, int id);
+__device__ DSightingBatch AView(DArena a, float posx, float posy, float r, int id);
 __device__ float getAngle(float x1, float y1, float x2, float y2, float r1);
 __device__ float distanceTo(int x1, int y1, int x2, int y2);
-__device__ void AUpdate(SArena a);
-__device__ void ASpawnAmmo(SArena a);
-__device__ void BUpdate(SBullet b);
-__device__ void AShootFrom(SArena a, float px, float py);
+__device__ void AUpdate(DArena a);
+__device__ void ASpawnAmmo(DArena a);
+__device__ void BUpdate(DBullet b);
+__device__ void AShootFrom(DArena a, float px, float py);
 __device__ float randomPromille();
 __device__ int random(int max);
 __device__ float random(float max);

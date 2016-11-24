@@ -9,19 +9,19 @@
 #define nMemory 10
 #define VIEWTYPE_AMOUNT 5
 
-struct BotAction {
+struct DBotAction {
 	float acceleration;
 	float rotation;
 	int shoot;
-	BotAction(float acc, float rot, int shooting) {
+	__device__ DBotAction(float acc, float rot, int shooting) {
 		acceleration = acc;
 		rotation = rot;
 		shoot = shooting;
 	}
 };
-__device__ void BotUpdate(SNeuralBot b, SNeuralNetwork nnwrk, SArena a);
-__device__ float GetVelX(SNeuralBot b);
-__device__ float GetVelY(SNeuralBot b);
-__device__ int BotCollides(SNeuralBot bo, SBullet bu);
-__device__ int BotCollides(SNeuralBot bo, SAmmo a);
+__device__ void BotUpdate(DNeuralBot b, DNeuralNetwork nnwrk, DArena a);
+__device__ float GetVelX(DNeuralBot b);
+__device__ float GetVelY(DNeuralBot b);
+__device__ int BotCollides(DNeuralBot bo, DBullet bu);
+__device__ int BotCollides(DNeuralBot bo, DAmmo a);
 __device__ float pointDistance(float x, float y, float x1, float y1, float x2, float y2);

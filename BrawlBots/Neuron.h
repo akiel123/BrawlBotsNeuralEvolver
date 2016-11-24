@@ -13,41 +13,41 @@ struct HNeuron {
 	int nConnections;
 	int thresh;
 	float value;
-	std::vector<SNeuron> c;
-	std::vector<float> w;
-	std::vector<float> input;
+	std::vector<HNeuron> *c;
+	std::vector<float> *w;
+	std::vector<float> *input;
 
-	SNeuron(int numberOfConnections) {
+	HNeuron(int numberOfConnections) {
 		nConnections = numberOfConnections;
-		c.reserve(nConnections);
-		w.reserve(nConnections);
-		input.reserve(nConnections);
+		c->reserve(nConnections);
+		w->reserve(nConnections);
+		input->reserve(nConnections);
 	}
-	SNeuron(std::vector<SNeuron> connections) {
+	HNeuron(std::vector<HNeuron> *connections) {
 		c = connections;
-		nConnections = connections.size();
-		w.reserve(nConnections);
-		input.reserve(nConnections);
-		for (int i = 0; i < c.size(); i++) {
-			w[i] = rand() / RAND_MAX;
+		nConnections = connections->size();
+		w->reserve(nConnections);
+		input->reserve(nConnections);
+		for (int i = 0; i < c->size(); i++) {
+			(*w)[i] = rand() / RAND_MAX;
 		}
 	}
-	SNeuron(std::vector<SNeuron> connections, std::vector<float> weights) {
-		if (connections.size() < weights.size()) {
-			nConnections = connections.size();
+	HNeuron(std::vector<HNeuron> *connections, std::vector<float> *weights) {
+		if (connections->size() < weights->size()) {
+			nConnections = connections->size();
 			c = connections;
 			for (int i = 0; i < nConnections; i++) {
-				w.push_back(weights[i]);
+				w->push_back((*weights)[i]);
 			}
 		}
 		else {
-			nConnections = weights.size();
+			nConnections = weights->size();
 			w = weights;
 			for (int i = 0; i < nConnections; i++) {
-				connections.push_back(connections[i]);
+				connections->push_back((*connections)[i]);
 			}
 		}
-		input.reserve(nConnections);
+		input->reserve(nConnections);
 	}
 };
 
@@ -55,47 +55,37 @@ struct DNeuron {
 	int nConnections;
 	int thresh;
 	float value;
-	thrust::device_vector<DNeuron> c;
-	thrust::device_vector<float> w;
-	thrust::device_vector<float> input;
+	DNeuron *c;
+	float *w;
+	float *input;
 
+	DNeuron() {}
 	DNeuron(int numberOfConnections) {
 		nConnections = numberOfConnections;
-		c.reserve(nConnections);
-		w.reserve(nConnections);
-		input.reserve(nConnections);
 	}
-	DNeuron(thrust::device_vector<DNeuron> connections) {
+	DNeuron(DNeuron *connections, int connectionCount) {
 		c = connections;
-		nConnections = connections.size();
-		w.reserve(nConnections);
-		input.reserve(nConnections);
-		for (int i = 0; i < c.size(); i++) {
+		nConnections = connectionCount;
+		for (int i = 0; i < connectionCount; i++) {
 			w[i] = rand() / RAND_MAX;
+			input[i] = 0;
 		}
 	}
-	DNeuron(std::vector<DNeuron> connections, thrust::device_vector<float> weights) {
-		if (connections.size() < weights.size()) {
-			nConnections = connections.size();
-			c = connections;
-			for (int i = 0; i < nConnections; i++) {
-				w.push_back(weights[i]);
-			}
+	DNeuron(DNeuron* connections, float *weights, int connectionCount) {
+		nConnections = connectionCount;
+		w = weights;
+		connections = connections;
+		for (int i = 0; i < connectionCount; i++) {
+			input[i] = 0;
 		}
-		else {
-			nConnections = weights.size();
-			w = weights;
-			for (int i = 0; i < nConnections; i++) {
-				connections.push_back(connections[i]);
-			}
-		}
-		input.reserve(nConnections);
 	}
 };
 
 
-void NeuronFetchInputs(SNeuron n, FetchType t);
-void NeuronPushInput(SNeuron n, std::vector<float> input);
-__device__ float NeuronGetValue(SNeuron n, thrust::device_vector<float> input, FetchType t); float NeuronGetValue(SNeuron n, FetchType t);
-void NeuronUpdateValue(SNeuron n);
-void NeuronMutate(SNeuron n);
+void NeuronFetchInputs(HNeuron n, FetchType t);
+void HNeuronPushInput(HNeuron n, std::vector<float> input);
+__device__ void DNeuronPushInput(DNeuron n, float* input, int inputCount);
+__device__ float NeuronGetValue(DNeuron n, float* input, FetchType t); 
+float NeuronGetValue(HNeuron n, FetchType t);
+void NeuronUpdateValue(HNeuron n);
+void NeuronMutate(HNeuron n);

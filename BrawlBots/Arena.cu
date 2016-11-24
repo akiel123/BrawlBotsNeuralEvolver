@@ -1,42 +1,43 @@
 #include "Arena.h"
 #include "Bot.h"
-#include <math.h>
 #include <curand.h>
 #include <ctime>
 #include <math.h>
 
 
-__device__ thrust::device_vector<SSighting> AView(SArena a, float posx, float posy, float r, int id) {
-	thrust::device_vector<SSighting> s;
-	for (int i = 0; i < a.bots.size(); i++) {
-		SNeuralBot temp = temp;
+__device__ DSightingBatch AView(DArena a, float posx, float posy, float r, int id) {
+	DSighting* s;
+	int count;
+	for (int i = 0; i < a.botCount; i++, count++) {
+		DNeuralBot temp = temp;
 		if (temp.id  == id) continue;
 		float angle = getAngle(posx, posy, temp.posx, temp.posy, r);
-		if (fmod(fabsf(angle), M_2PI) < VIEW_ANGLE ) {
+		if (fmod((float)fabsf(angle), (float)M_2PI) < VIEW_ANGLE ) {
 			float d = distanceTo(posx, posy, temp.posx, temp.posy);
-			s.push_back(SSighting(d, angle,  GetVelX(temp), GetVelY(temp),
-				ViewType::ENEMY, temp.id, temp.posx, temp.posy));
+			s[count] = DSighting(d, angle,  GetVelX(temp), GetVelY(temp),
+				ViewType::ENEMY, temp.id, temp.posx, temp.posy);
 		}
 	}
-	for (int i = 0; i < a.ammo.size(); i++) {
-		SAmmo temp = temp;
+	for (int i = 0; i < a.ammoCount; i++, count++) {
+		DAmmo temp = temp;
 		float angle = getAngle(posx, posy, temp.posx, temp.posy, r);
-		if (fmod(fabsf(angle), M_2PI) < VIEW_ANGLE) {
+		if (fmod((float)fabsf(angle), (float)M_2PI) < VIEW_ANGLE) {
 			float d = distanceTo(posx, posy, temp.posx, temp.posy);
-			s.push_back(SSighting(d, angle, 0, 0,
-				ViewType::AMMO, temp.id, temp.posx, temp.posy));
+			s[count] = DSighting(d, angle, 0, 0,
+				ViewType::AMMO, temp.id, temp.posx, temp.posy);
 		}
 	}
-	for (int i = 0; i < a.bullets.size(); i++) {
-		SBullet temp = temp;
+	for (int i = 0; i < a.bulletCount; i++, count++) {
+		DBullet temp = temp;
 		float angle = getAngle(posx, posy, temp.posx, temp.posy, r);
-		if (fmod(fabsf(angle), M_2PI) < VIEW_ANGLE) {
+		if (fmod((float)fabsf(angle), (float)M_2PI) < VIEW_ANGLE) {
 			float d = distanceTo(posx, posy, temp.posx, temp.posy);
-			s.push_back(SSighting(d, angle, temp.velx, temp.vely,
-				ViewType::AMMO, temp.id, temp.posx, temp.posy));
+			s[count] = DSighting(d, angle, temp.velx, temp.vely,
+				ViewType::AMMO, temp.id, temp.posx, temp.posy);
 		}
 	}
-	return s;
+	DSightingBatch b = DSightingBatch(s, count);
+	return b;
 }
 
 __device__ float getAngle(float x1, float y1, float x2, float y2, float r1) {
@@ -49,29 +50,30 @@ __device__ float getAngle(float x1, float y1, float x2, float y2, float r1) {
 }
 
 __device__ float distanceTo(int x1, int y1, int x2, int y2) {
-	return hypot(x2 - x1, y2 - y1);
+	return hypotf((float)(x2 - x1), (float)(y2 - y1));
 }
 
-__device__ void AUpdate(SArena a) {
+__device__ void AUpdate(DArena a) {
 	//Spawn ammo?
 	if (randomPromille() <= AMMO_SPAWN_PROMILLE / 1000.0) {
 		ASpawnAmmo(a);
 	}
 	//Handle bullets
-	thrust::device_vector<SBullet> survivingBullets;
-	for (int i = 0; i < a.bullets.size(); i++) {
-		SBullet temp = a.bullets[i];
+	DBullet* survivingBullets;
+	int count = 0;
+	for (int i = 0; i < a.bulletCount; i++, count++) {
+		DBullet temp = a.bullets[i];
 		BUpdate(temp);
-		if (temp.posx >= BULLET_RADIUS || temp.posx >= ARENAW + BULLET_RADIUS,
+		/*if (temp.posx >= BULLET_RADIUS || temp.posx >= ARENAW + BULLET_RADIUS, //Should this be checking for surviving bullets?
 			temp.posy >= BULLET_RADIUS || temp.posy >= ARENAH + BULLET_RADIUS) {
-			survivingBullets.push_back(temp);
-		}
+			survivingBullets[i] = temp;
+		}*/
 	}
 	a.bullets = survivingBullets;
-
+	a.bulletCount = count;
 	//Handle bots
-	for (int i = 0; i < a.bots.size(); i++) {
-		SNeuralBot temp = a.bots[i];
+	for (int i = 0; i < a.botCount; i++) {
+		DNeuralBot temp = a.bots[i];
 		BotUpdate(temp, *temp.nnwrk, a);
 		
 		//X
@@ -97,64 +99,80 @@ __device__ void AUpdate(SArena a) {
 	}
 
 	//Bullet Collisions
-	thrust::device_vector<SBullet> survivingBullets1;
-	for (int i = 0; i < a.bullets.size(); i++) {
+	DBullet* survivingBullets1;
+	count = 0;
+	for (int i = 0; i < a.bulletCount; i++) {
 		int survived = 1;
-		for (int j = 0; j < a.bots.size(); j++) {
-			SNeuralBot temp = a.bots[j];
+		for (int j = 0; j < a.botCount; j++) {
+			DNeuralBot temp = a.bots[j];
 			if (BotCollides(temp, a.bullets[i])) {
 				temp.health--;
 				survived = 0;
 			}
 		}
 		if (survived) {
-			survivingBullets1.push_back(a.bullets[i]);
+			survivingBullets1[count] = a.bullets[i];
+			count++;
 		}
 	}
+	a.bullets = survivingBullets1;
+	a.bulletCount = count;
+
 	//Surviving bots
-	thrust::device_vector<SNeuralBot> survivingBots;
-	for (int i = 0; i < a.bots.size(); i++) {
-		SNeuralBot temp = a.bots[i];
-		if (temp.health > 0) survivingBots.push_back(a.bots[i]);
+	DNeuralBot* survivingBots;
+	count = 0;
+	for (int i = 0; i < a.botCount; i++) {
+		DNeuralBot temp = a.bots[i];
+		if (temp.health > 0) {
+			survivingBots[count] = a.bots[i];
+			count++;
+		}
 	}
 	a.bots = survivingBots;
+	a.botCount = count;
 
 	//Ammo pickups
-	thrust::device_vector<SAmmo> survivingAmmo;
-	for (int i = 0; i < a.ammo.size(); i++) {
+	DAmmo* survivingAmmo;
+	count = 0;
+	for (int i = 0; i < a.ammoCount; i++) {
 		int survives = 1;
-		for (int j = 0; j < a.bots.size(); j++) {
-			SNeuralBot temp = a.bots[j];
+		for (int j = 0; j < a.botCount; j++) {
+			DNeuralBot temp = a.bots[j];
 			if (BotCollides(a.bots[j], a.ammo[i])) {
 				temp.ammo++;
 				survives = 0;
 			}
 		}
-		if (survives) survivingAmmo.push_back(a.ammo[i]);
+		if (survives) {
+			survivingAmmo[count] = a.ammo[i];
+			count++;
+		}
 	}
 	a.ammo = survivingAmmo;
+	a.ammoCount = count;
 
 	//End
 	a.steps--;
-	SNeuralBot temp = a.bots[0];
-	if (a.bots.size() < 2 || a.steps <= 0) {
-		if (a.bots.size() != 1) a.winner = -2;
+	DNeuralBot temp = a.bots[0];
+	if (a.botCount < 2 || a.steps <= 0) {
+		if (a.botCount != 1) a.winner = -2;
 		else a.winner = temp.id;
 	}
 }
 
-__device__ void ASpawnAmmo(SArena a) {
-	if (a.ammo.size() >= MAX_AMMO) return;
-	SAmmo newA = SAmmo(random(ARENAW - (MARGIN + BOT_RADIUS) * 2) + MARGIN + BOT_RADIUS, 
+__device__ void ASpawnAmmo(DArena a) {
+	if (a.ammoCount >= MAX_AMMO) return;
+	DAmmo newA = DAmmo(random(ARENAW - (MARGIN + BOT_RADIUS) * 2) + MARGIN + BOT_RADIUS, 
 		random(ARENAH - (MARGIN + BOT_RADIUS) * 2) + MARGIN + BOT_RADIUS);
-	a.ammo.push_back(newA);
+	a.ammo[a.ammoCount] = newA;
+	a.ammoCount++;
 }
 
-__device__ void AShootFrom(SArena a, float px, float py) {
+__device__ void AShootFrom(DArena a, float px, float py) {
 
 }
 
-__device__ void BUpdate(SBullet b) {
+__device__ void BUpdate(DBullet b) {
 	b.posx += b.velx;
 	b.posy += b.vely;
 }

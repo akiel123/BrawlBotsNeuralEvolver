@@ -16,32 +16,33 @@
 #include <helper_cuda.h>
 
 #define SMCount 13
+#define NetworksPerBlock 10
 
-__global__ void OneOnOneBattles(float* pw, float* pt, SNeuralNetwork* nnmodel, int* weightCount, int* networkCount, int* battleCount, float* resultsPersonal, float* resultsLegacy, int* nnIDs) {
-	__shared__ SNeuralNetwork nnModel = *(nnmodel);
+__global__ void OneOnOneBattles(float* pw, float* pt, DNeuralNetwork* nnmodel, int* weightCount, int* networkCount, int* battleCount, float* resultsPersonal, float* resultsLegacy, int* nnIDs) {
+	__shared__ DNeuralNetwork nnModel = *(nnmodel);
 	__syncthreads();
-	__shared__ std::vector<SNeuralNetwork> nns;
-	if (blockIdx.x + SMCount  *threadIdx.x < (*(networkCount) / SMCount)) {
-		nns.push_back(NNextractFromWeightArray(pw, pt, blockIdx.x + SMCount * threadIdx.x, nnModel, getID(blockIdx.x + SMCount * threadIdx.x, nnIDs)));
+	__shared__ DNeuralNetwork* nns;
+	int plus = 0;
+	if (blockIdx.x >= (*(networkCount) % SMCount)) plus = 1;
+	if (threadIdx.x + plus <= (*(networkCount) / SMCount + 1) || (threadIdx.x < NetworksPerBlock && threadIdx.x < *networkCount)) {
+		nns[threadIdx.x] = NNextractFromWeightArray(pw, pt, (blockIdx.x + SMCount * threadIdx.x) % *networkCount, nnModel, getID((blockIdx.x + SMCount * threadIdx.x) % *networkCount, nnIDs));
 	}
+	int nnCount = (int)(*(networkCount) / (SMCount + 1)) + 1 - plus;
 	printf("test");
 	__syncthreads();
-	__shared__ int responsibleNetworks = nns.size;
+	__shared__ int responsibleNetworks = nnCount;
 	__syncthreads();
 	if (responsibleNetworks == 0) return;
-	if (!(blockIdx.x + SMCount  *threadIdx.x < (*(networkCount) / SMCount)) && threadIdx.x < 10 && threadIdx.x < *networkCount) {
-		int index = (*networkCount / SMCount * blockIdx.x + threadIdx.x) % *networkCount;
-		nns.push_back(NNextractFromWeightArray(pw, pt, index, nnModel, *(nnIDs + index)));
-	}
+	
 	__syncthreads();
 
-	SNeuralNetwork contender;
-	SNeuralNetwork opponent;
+	DNeuralNetwork contender;
+	DNeuralNetwork opponent;
 	int hasFight = 0;
 	if (threadIdx.x < responsibleNetworks * *battleCount) {
 		hasFight = 1;
 		contender = nns[threadIdx.x / *battleCount];
-		opponent = nns[threadIdx.x / *battleCount + threadIdx.x % (nns.size - 1)];
+		opponent = nns[threadIdx.x / *battleCount + threadIdx.x % (nnCount - 1)];
 
 
 		float* pf1 = getPersonalFitness(resultsPersonal, contender.id, *networkCount, nnIDs);
@@ -111,10 +112,10 @@ __global__ void OneOnOneBattles(float* pw, float* pt, SNeuralNetwork* nnmodel, i
 	}
 }
 
-__device__ int* battle(SNeuralNetwork nncontender, SNeuralNetwork nnopponent) {
-	SNeuralBot b1 = SNeuralBot(&nncontender);
-	SNeuralBot b2 = SNeuralBot(&nnopponent);
-	SArena a = SArena(b1, b2);
+__device__ int* battle(DNeuralNetwork nncontender, DNeuralNetwork nnopponent) {
+	DNeuralBot b1 = DNeuralBot(&nncontender);
+	DNeuralBot b2 = DNeuralBot(&nnopponent);
+	DArena a = DArena(b1, b2);
 	int result[2];
 
 	int timeout = 100000;
@@ -159,7 +160,7 @@ __device__ float* getLegacyFitness(float* lf, int ID, int count, int* ids) {
 	return lf;
 }
 
-void SetUpOneOnOneBattle(SGeneration g, int battlesPerIndividual) {
+void SetUpOneOnOneBattle(HGeneration g, int battlesPerIndividual) {
 
 	thrust::host_vector<float> hpersonalFitness;
 	thrust::host_vector<float> hlegacyFitness;
@@ -167,73 +168,80 @@ void SetUpOneOnOneBattle(SGeneration g, int battlesPerIndividual) {
 	thrust::host_vector<float> hweights;
 	thrust::host_vector<float> hthresh;
 
-	for (int i = 0; i < g.ids.size; i++) {
-		hpersonalFitness.push_back(g.ids[i].personalFitness);
-		hlegacyFitness.push_back(g.ids[i].legacyFitness);
-		hnnIDs.push_back(g.ids[i].nnwrk.id);
+	for (int i = 0; i < g.ids->size; i++) {
+		hpersonalFitness.push_back((*g.ids)[i].personalFitness);
+		hlegacyFitness.push_back((*g.ids)[i].legacyFitness);
+		hnnIDs.push_back((*g.ids)[i].nnwrk.id);
 
-		for (int j = 0; j < g.ids[i].nnwrk.layers.size; i++) {
-			for (int k = 0; k < g.ids[i].nnwrk.layers[j].neurons.size; k++) {
-				hthresh.push_back(g.ids[i].nnwrk.layers[j].neurons[k].thresh);
-				for (int l = 0; l < g.ids[i].nnwrk.layers[j].neurons[k].w.size; l++) {
-					hweights.push_back(g.ids[i].nnwrk.layers[j].neurons[k].w[l]);
+		for (int j = 0; j < (*g.ids)[i].nnwrk.layers->size; i++) {
+			for (int k = 0; k < (*(*g.ids)[i].nnwrk.layers)[j].neurons->size; k++) {
+				hthresh.push_back((*(*(*g.ids)[i].nnwrk.layers)[j].neurons)[k].thresh);
+				for (int l = 0; l < (*(*(*g.ids)[i].nnwrk.layers)[j].neurons)[k].w->size; l++) {
+					hweights.push_back((*(*(*(*g.ids)[i].nnwrk.layers)[j].neurons)[k].w)[l]);
 				}
 			}
 		}
 	}
 
 
-	thrust::device_vector<float> dpersonalFitness = hpersonalFitness;
-	thrust::device_vector<float> dlegacyFitness = hlegacyFitness;
-	thrust::device_vector<float> dnnIDs = hnnIDs;
-	thrust::device_vector<float> dweights = hweights;
-	thrust::device_vector<float> dthresh = hthresh;
-	float* h_w = thrust::raw_pointer_cast(&dweights[0]);
-	float* h_t = thrust::raw_pointer_cast(&dthresh[0]);
-	float* h_resultsPersonal = thrust::raw_pointer_cast(&dpersonalFitness[0]);
-	float* h_resultsLegacy = thrust::raw_pointer_cast(&dlegacyFitness[0]);
-	float* h_nnIDs = thrust::raw_pointer_cast(&dnnIDs[0]);
-
-	float* d_pw;
-	float* d_pt;
-	SNeuralNetwork *d_nnmodel;
-	int * d_wegithCount;
-	int * d_networkCount;
-	int * d_battleCount;
+	float* h_w = thrust::raw_pointer_cast(&hweights[0]);
+	float* h_t = thrust::raw_pointer_cast(&hthresh[0]);
+	float* h_rp = thrust::raw_pointer_cast(&hpersonalFitness[0]);
+	float* h_rl = thrust::raw_pointer_cast(&hlegacyFitness[0]);
+	float* h_nnids = thrust::raw_pointer_cast(&hnnIDs[0]);;
+	int weightCount = hweights.size();
+	
+	float* d_w;
+	float* d_t;
 	float* d_rp;
 	float* d_rl;
 	float* d_nnids;
-	
+	int * d_weightCount;
+	int * d_networkCount;
+	int * d_battleCount;
+	DNeuralNetwork *d_nnmodel;
+
+
 	for (int i = 0; i < hpersonalFitness.size; i++) {
 		std::cout << i << " Personal fitness before: " << hpersonalFitness[i] << std::endl;
 	}
 
-	cudaMalloc(&d_pw, sizeof(float*));
-	cudaMalloc(&d_pt, sizeof(float*));
-	cudaMalloc(&d_nnmodel, sizeof(SNeuralNetwork));
-	cudaMalloc(&d_wegithCount, sizeof(int));
+	cudaMalloc(&d_w, sizeof(float) * hweights.size());
+	cudaMalloc(&d_t, sizeof(float) * hthresh.size());
+	cudaMalloc(&d_rp, sizeof(float) * hpersonalFitness.size());
+	cudaMalloc(&d_rl, sizeof(float) * hlegacyFitness.size());
+	cudaMalloc(&d_nnids, sizeof(int) * hnnIDs.size());
+	cudaMalloc(&d_nnmodel, sizeof(HNeuralNetwork));
+	cudaMalloc(&d_weightCount, sizeof(int));
 	cudaMalloc(&d_networkCount, sizeof(int));
 	cudaMalloc(&d_battleCount, sizeof(int));
-	cudaMalloc(&d_rp, sizeof(float*));
-	cudaMalloc(&d_rl, sizeof(float*));
-	cudaMalloc(&d_nnids, sizeof(int*));
 
-	cudaMemcpy(d_pw, &h_w, sizeof(float*), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_pt, &h_t, sizeof(float*), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_nnmodel, &g.ids[0].nnwrk, sizeof(SNeuralNetwork), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_wegithCount, &dweights.size, sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_networkCount, &g.ids.size, sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_w, h_w, sizeof(float*), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_t, h_t, sizeof(float*), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_nnmodel, &((*g.ids)[0].nnwrk), sizeof(HNeuralNetwork), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_weightCount, &weightCount, sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_networkCount, &g.ids->size, sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_battleCount, &battlesPerIndividual, sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_rp, &h_resultsPersonal, sizeof(float*), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_rl, &h_resultsLegacy, sizeof(float*), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_nnids, &h_nnIDs, sizeof(int*), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_rp, h_rp, sizeof(float*), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_rl, h_rl, sizeof(float*), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_nnids, h_nnids, sizeof(int*), cudaMemcpyHostToDevice);
 
 	OneOnOneBattles << <13, 128 >> (d_pw, d_pt, d_nnmodel, d_wegithCount, d_networkCount, d_battleCount, d_rp, d_rl, d_nnids);
 
-	cudaMemcpy(&hpersonalFitness, d_rp, sizeof(float) * hpersonalFitness.size, cudaMemcpyDeviceToHost);
-	cudaMemcpy(&hpersonalFitness, d_rl, sizeof(float) * hlegacyFitness.size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_rp, d_rp, sizeof(float) * hpersonalFitness.size(), cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_rl, d_rl, sizeof(float) * hlegacyFitness.size(), cudaMemcpyDeviceToHost);
+
+	cudaFree(d_w);
+	cudaFree(d_t);
+	cudaFree(d_nnmodel);
+	cudaFree(d_weightCount);
+	cudaFree(d_networkCount);
+	cudaFree(d_battleCount);
+	cudaFree(d_rp);
+	cudaFree(d_rl);
+	cudaFree(d_nnids);
 
 	for (int i = 0; i < hpersonalFitness.size; i++) {
 		std::cout << i << " Personal fitness after: " << hpersonalFitness[i] << std::endl;
-	}
+	}	
 }
